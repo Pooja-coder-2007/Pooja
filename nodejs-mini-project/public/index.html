@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Management</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, sans-serif; background: #f2f5fa; color: #243047; }
+    header { background: #3157a4; color: white; padding: 25px 8%; }
+    header h1 { margin: 0 0 6px; }
+    main { max-width: 900px; margin: 30px auto; padding: 0 18px; }
+    .panel { background: white; padding: 22px; border-radius: 12px; box-shadow: 0 3px 14px #18294a12; margin-bottom: 22px; }
+    form { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    input { padding: 12px; border: 1px solid #ccd4e1; border-radius: 7px; font-size: 15px; min-width: 0; }
+    button { border: 0; border-radius: 7px; padding: 11px 16px; cursor: pointer; background: #3157a4; color: white; font-size: 14px; }
+    form button { grid-column: 1 / -1; }
+    .student { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid #e8edf4; }
+    .student:last-child { border-bottom: 0; }
+    .student p { margin: 5px 0 0; color: #68758b; font-size: 14px; }
+    .delete { background: #d94b4b; }
+    #message { color: #247447; min-height: 20px; }
+    @media (max-width: 600px) { form { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Student Management System</h1>
+    <div>A simple Node.js mini project</div>
+  </header>
+  <main>
+    <section class="panel">
+      <h2>Add a Student</h2>
+      <form id="studentForm">
+        <input id="name" placeholder="Student name" required>
+        <input id="course" placeholder="Course / Class" required>
+        <input id="email" type="email" placeholder="Email (optional)">
+        <button type="submit">Add Student</button>
+      </form>
+      <p id="message"></p>
+    </section>
+    <section class="panel">
+      <h2>Student List</h2>
+      <div id="studentList">Loading students...</div>
+    </section>
+  </main>
+  <script>
+    const list = document.getElementById('studentList');
+    const message = document.getElementById('message');
+
+    async function loadStudents() {
+      const response = await fetch('/api/students');
+      const students = await response.json();
+      list.innerHTML = '';
+      if (!students.length) {
+        list.textContent = 'No students added yet.';
+        return;
+      }
+      students.forEach(student => {
+        const row = document.createElement('div');
+        row.className = 'student';
+        const details = document.createElement('div');
+        const title = document.createElement('strong');
+        title.textContent = student.name;
+        const info = document.createElement('p');
+        info.textContent = `${student.course}${student.email ? ' • ' + student.email : ''}`;
+        details.append(title, info);
+        const remove = document.createElement('button');
+        remove.className = 'delete';
+        remove.textContent = 'Delete';
+        remove.addEventListener('click', () => deleteStudent(student.id));
+        row.append(details, remove);
+        list.append(row);
+      });
+    }
+
+    document.getElementById('studentForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const student = {
+        name: document.getElementById('name').value,
+        course: document.getElementById('course').value,
+        email: document.getElementById('email').value
+      };
+      const response = await fetch('/api/students', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(student)
+      });
+      if (response.ok) {
+        event.target.reset();
+        message.textContent = 'Student added successfully!';
+        await loadStudents();
+      } else {
+        message.textContent = 'Please enter a valid name and course.';
+      }
+    });
+
+    async function deleteStudent(id) {
+      await fetch(`/api/students/${id}`, { method: 'DELETE' });
+      message.textContent = 'Student deleted.';
+      loadStudents();
+    }
+
+    loadStudents();
+  </script>
+</body>
+</html>
